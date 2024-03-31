@@ -122,4 +122,56 @@ class EnrollmentSystem {
             System.out.println(e);
         }
     }
+    
+    public void enrollInSubject(int studentNo, String subjectName) {
+        // Retrieve the courseId and subjectId using the subjectName
+        int courseId = retrieveCourseId(subjectName);
+        int subjectId = retrieveSubjectId(subjectName);
+
+        if (courseId == -1 || subjectId == -1) {
+            System.out.println("Subject " + subjectName + " not found.");
+            return;
+        }
+
+        // Create the enrollment
+        createEnrollment(studentNo, courseId, subjectId);
+        System.out.println("Enrollment in subject " + subjectName + " successful!");
+    }
+    
+    public int retrieveCourseId(String subjectName) {
+        int courseId = -1; // Default value if not found
+        try {
+            String query = "SELECT CourseId FROM course WHERE CourseName = ?";
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setString(1, subjectName);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                courseId = rs.getInt("CourseId");
+            }
+            stmt.close();
+            rs.close();
+        } catch (SQLException e) {
+            System.out.println("Error retrieving courseId: " + e.getMessage());
+        }
+        return courseId;
+    }
+
+    public int retrieveSubjectId(String subjectName) {
+        int subjectId = -1; // Default value if not found
+        try {
+            String query = "SELECT SubjectId FROM subject WHERE SubjectName = ?";
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setString(1, subjectName);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                subjectId = rs.getInt("SubjectId");
+            }
+            stmt.close();
+            rs.close();
+        } catch (SQLException e) {
+            System.out.println("Error retrieving subjectId: " + e.getMessage());
+        }
+        return subjectId;
+    }
+
 }

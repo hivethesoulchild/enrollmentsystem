@@ -119,14 +119,21 @@ public class StudentSystem {
             System.out.println(e);
         }
     }
-    public boolean studentExists(int studentNo) {
-        for (Student student : students) {
-            if (student.getId() == studentNo) {
-                return true; // Student exists
+    public boolean studentExists(int studentNo) throws SQLException {
+        boolean exists = false;
+        String query = "SELECT COUNT(*) AS count FROM Student WHERE StudentNo = ? AND StudentStatus = 'Active'";
+        try (PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, studentNo);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    int count = rs.getInt("count");
+                    exists = count > 0;
+                }
             }
         }
-        return false; // Student does not exist
+        return exists;
     }
+
 
     public void deleteStudent(int toUpdate) {
         try {

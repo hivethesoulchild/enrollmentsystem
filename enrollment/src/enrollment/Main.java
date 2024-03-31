@@ -1,5 +1,6 @@
 package enrollment;
 
+import java.io.Console;
 import java.sql.*;
 import java.util.Scanner;
 
@@ -16,7 +17,7 @@ public class Main {
 			System.out.print("Enter username: ");
 			String username = scanner.nextLine();
 			System.out.print("Enter password: ");
-			String password = scanner.nextLine();
+			String password = readPassword(scanner);
 
 			// Check if the username and password are valid
 			String role = authenticateUser(conn, username, password);
@@ -83,20 +84,32 @@ public class Main {
 			ResultSet rs = stmt.executeQuery();
 
 			if (rs.next()) {
-			    String role = rs.getString("role").toLowerCase(); // Convert role to lowercase
-			    if (role.equals("admin") || role.equals("professor") || role.equals("student")) {
-			        return role; // Return role in lowercase
-			    } else {
-			        return null; // Invalid role
-			    }
+				String role = rs.getString("role").toLowerCase(); // Convert role to lowercase
+				if (role.equals("admin") || role.equals("professor") || role.equals("student")) {
+					return role; // Return role in lowercase
+				} else {
+					return null; // Invalid role
+				}
 			} else {
-			    return null; // Authentication failed
+				return null; // Authentication failed
 			}
 
 		} catch (SQLException e) {
 			System.out.println("Database error: " + e.getMessage());
 			return null;
 		}
+	}
+
+	private static String readPassword(Scanner scanner) {
+		// Masking password with asterisks
+		Console console = System.console();
+		if (console == null) {
+			System.out.println("Console not available. Password will not be masked.");
+			return scanner.nextLine();
+		}
+
+		char[] passwordArray = console.readPassword();
+		return new String(passwordArray);
 	}
 
 	private static void adminMenu(StudentSystem ss, EnrollmentSystem es, ProfessorSystem ps, CourseSystem cs,
@@ -146,14 +159,14 @@ public class Main {
 				do {
 					System.out.print("Enter password: ");
 					password = scanner.nextLine();
-					
+
 					// Validate password format
 					validPassword = isValidPassword(password);
 					if (!validPassword) {
 						System.out.println("Invalid password format. Please try again.");
 					}
 				} while (!validPassword);
-				
+
 				System.out.print("Enter role (Admin/Professor/Student): ");
 				String roleStr = scanner.nextLine();
 				Users.Role role = Users.Role.valueOf(roleStr);
@@ -240,26 +253,28 @@ public class Main {
 	}
 
 	private static void studentMenu(StudentSystem ss, EnrollmentSystem es, ProfessorSystem ps, CourseSystem cs,
-	        SubjectSystem sus, Scanner scanner) {
-	    boolean exit = false;
-	    while (!exit) {
-	        displayStudentMenu();
-	        int choice = scanner.nextInt();
-	        scanner.nextLine(); // Consume the newline character
+			SubjectSystem sus, Scanner scanner) throws SQLException {
+		boolean exit = false;
+		while (!exit) {
+			displayStudentMenu();
+			int choice = scanner.nextInt();
+			scanner.nextLine(); // Consume the newline character
 
-	        switch (choice) {
-	            case 1:
-	                enrollInSubject(ss, es, scanner); // Call the enrollInSubject method
-	                break;
-	            case 2:
-	                exit = true;
-	                break;
-	            default:
-	                System.out.println("Invalid choice. Please try again.");
-	        }
-	    }
+			switch (choice) {
+			case 1:
+				enrollInSubject(ss, es, scanner);
+				break;
+			case 2:
+				es.displayEnrollments();
+				break;
+			case 3:
+				exit = true;
+				break;
+			default:
+				System.out.println("Invalid choice. Please enter a number between 1 and 3.");
+			}
+		}
 	}
-
 
 	private static void professorCRUDMenu(StudentSystem ss, EnrollmentSystem es, ProfessorSystem ps, CourseSystem cs,
 			SubjectSystem sus, Scanner scanner) {
@@ -446,10 +461,21 @@ public class Main {
 		switch (choice) {
 		case 1:
 			// Update Student
-			System.out.print("Enter student number to update: ");
+			System.out.println("Enter student number to update: ");
 			int studentNo = scanner.nextInt();
-			scanner.nextLine(); // Consume the newline character
-			ss.updateStudent(studentNo, null, null);
+			scanner.nextLine(); // Consume newline
+			System.out.println("Choose field to update (StudentName, StudentAddress, StudentNumber): ");
+			String fieldToUpdate = scanner.nextLine();
+
+			// Validate the field to update
+			if (fieldToUpdate.equals("StudentName") || fieldToUpdate.equals("StudentAddress")
+					|| fieldToUpdate.equals("StudentNumber")) {
+				System.out.println("Enter new value: ");
+				String newValue = scanner.nextLine();
+				ss.updateStudent(studentNo, fieldToUpdate, newValue);
+			} else {
+				System.out.println("Invalid field to update.");
+			}
 			break;
 		case 2:
 			// Update Professor
@@ -485,7 +511,7 @@ public class Main {
 			int userId = scanner.nextInt();
 			scanner.nextLine(); // Consume the newline character
 			System.out.print("Enter field to update: ");
-			String fieldToUpdate = scanner.nextLine();
+			fieldToUpdate = scanner.nextLine();
 			System.out.print("Enter new value: ");
 			String newValue = scanner.nextLine();
 			us.updateUser(userId, fieldToUpdate, newValue);
@@ -580,32 +606,33 @@ public class Main {
 		// If any required character type is missing, return false
 		return false;
 	}
-	
-	
-	private static void enrollInSubject(StudentSystem ss, EnrollmentSystem es, Scanner scanner) {
+
+	private static void enrollInSubject(StudentSystem ss, EnrollmentSystem es, Scanner scanner) throws SQLException {
 	    System.out.print("Enter student number: ");
 	    int studentNo = scanner.nextInt();
 	    scanner.nextLine(); // Consume the newline character
-	    
-	    System.out.print("Enter course ID: ");
-	    int courseId = scanner.nextInt();
-	    scanner.nextLine(); // Consume the newline character
-	    
-	    System.out.print("Enter subject ID: ");
-	    int subjectId = scanner.nextInt();
-	    scanner.nextLine(); // Consume the newline character
-	    
+	    System.out.print("Enter subject name: ");
+	    String subjectName = scanner.nextLine();
+	    System.out.print("Enter course name: "); // Add input for the course
+	    String courseName = scanner.nextLine();
+
 	    // Check if the student exists
 	    if (ss.studentExists(studentNo)) {
-	        // Proceed with enrollment
-	        es.createEnrollment(studentNo, courseId, subjectId);
-	        System.out.println("Enrollment successful!");
+	        // Retrieve course and subject IDs
+	        int courseId = es.retrieveCourseId(courseName); // Retrieve course ID
+	        int subjectId = es.retrieveSubjectId(subjectName);
+
+	        if (courseId != -1 && subjectId != -1) {
+	            // Proceed with enrollment
+	            es.createEnrollment(studentNo, courseId, subjectId);
+	            System.out.println("Enrollment successful!");
+	        } else {
+	            System.out.println("Subject '" + subjectName + "' or Course '" + courseName + "' not found. Enrollment failed.");
+	        }
 	    } else {
 	        System.out.println("Student with number " + studentNo + " does not exist.");
 	    }
 	}
-
-
 
 
 	private static void displayProfessorCRUDMenu() {
@@ -616,23 +643,22 @@ public class Main {
 	}
 
 	private static void displayAdminMenu() {
-	    System.out.println("\nAdmin Menu:");
-	    System.out.println("1. CRUD Operations");
-	    System.out.println("2. Add Professor");
-	    System.out.println("3. Add Student");
-	    System.out.println("4. Add Course");
-	    System.out.println("5. User Management"); // Add UserSystem option
-	    System.out.println("6. Exit");
-	    System.out.print("Enter your choice: ");
+		System.out.println("\nAdmin Menu:");
+		System.out.println("1. CRUD Operations");
+		System.out.println("2. Add Professor");
+		System.out.println("3. Add Student");
+		System.out.println("4. Add Course");
+		System.out.println("5. User Management"); // Add UserSystem option
+		System.out.println("6. Exit");
+		System.out.print("Enter your choice: ");
 	}
-
 
 	private static void displayCRUDMenu() {
 		System.out.println("\nCRUD Operations:");
-		System.out.println("1. Student");
-		System.out.println("2. Professor");
-		System.out.println("3. Course");
-		System.out.println("4. Subject");
+		System.out.println("1. Add");
+		System.out.println("2. Display");
+		System.out.println("3. Update");
+		System.out.println("4. Delete");
 		System.out.println("5. Enrollment");
 		System.out.println("6. Back");
 		System.out.print("Enter your choice: ");
@@ -640,8 +666,9 @@ public class Main {
 
 	private static void displayStudentMenu() {
 		System.out.println("\nStudent Menu:");
-		System.out.println("1. Enroll in Subject");
-		System.out.println("2. Exit");
+		System.out.println("1. Enroll in a Subject");
+		System.out.println("2. View Enrollments");
+		System.out.println("3. Exit");
 		System.out.print("Enter your choice: ");
 	}
 
@@ -665,49 +692,51 @@ public class Main {
 	}
 
 	private static void displayCreateMenu() {
-	    System.out.println("===== CREATE MENU =====");
-	    System.out.println("1. Add Student");
-	    System.out.println("2. Add Professor");
-	    System.out.println("3. Add Course");
-	    System.out.println("4. Add Subject");
-	    System.out.println("5. User Management"); // Add UserSystem option
-	    System.out.println("6. Back to Main Menu");
-	    System.out.print("Enter your choice: ");
+		System.out.println("===== CREATE MENU =====");
+		System.out.println("1. Add Student");
+		System.out.println("2. Add Enrollment");
+		System.out.println("3. Add Professor");
+		System.out.println("4. Add Course");
+		System.out.println("5. Add Subject");
+		System.out.println("6. User Management"); // Add UserSystem option
+		System.out.println("7. Back to Main Menu");
+		System.out.print("Enter your choice: ");
 	}
 
 	private static void displayReadMenu() {
-	    System.out.println("===== READ MENU =====");
-	    System.out.println("1. Display Students");
-	    System.out.println("2. Display Professors");
-	    System.out.println("3. Display Courses");
-	    System.out.println("4. Display Subjects");
-	    System.out.println("5. Display Users"); // Add option to display users
-	    System.out.println("6. Back to Main Menu");
-	    System.out.print("Enter your choice: ");
+		System.out.println("===== READ MENU =====");
+		System.out.println("1. Display Students");
+		System.out.println("2. Display Enrollees");
+		System.out.println("3. Display Professors");
+		System.out.println("4. Display Courses");
+		System.out.println("5. Display Subjects");
+		System.out.println("5. Display Users"); // Add option to display users
+		System.out.println("7. Back to Main Menu");
+		System.out.print("Enter your choice: ");
 	}
 
 	private static void displayUpdateMenu() {
-	    System.out.println("===== UPDATE MENU =====");
-	    System.out.println("1. Update Student");
-	    System.out.println("2. Update Professor");
-	    System.out.println("3. Update Course");
-	    System.out.println("4. Update Subject");
-	    System.out.println("5. Update User"); // Add option to update user
-	    System.out.println("6. Back to Main Menu");
-	    System.out.print("Enter your choice: ");
+		System.out.println("===== UPDATE MENU =====");
+		System.out.println("1. Update Student");
+		System.out.println("2. Update Enrollees");
+		System.out.println("3. Update Professor");
+		System.out.println("4. Update Course");
+		System.out.println("5. Update Subject");
+		System.out.println("6. Update User"); // Add option to update user
+		System.out.println("7. Back to Main Menu");
+		System.out.print("Enter your choice: ");
 	}
-
 
 	private static void displayDeleteMenu() {
-	    System.out.println("===== DELETE MENU =====");
-	    System.out.println("1. Delete Student");
-	    System.out.println("2. Delete Professor");
-	    System.out.println("3. Delete Course");
-	    System.out.println("4. Delete Subject");
-	    System.out.println("5. Delete User"); // Add option to delete user
-	    System.out.println("6. Back to Main Menu");
-	    System.out.print("Enter your choice: ");
+		System.out.println("===== DELETE MENU =====");
+		System.out.println("1. Delete Student");
+		System.out.println("2. Drop Out Enrollee");
+		System.out.println("3. Delete Professor");
+		System.out.println("4. Delete Course");
+		System.out.println("5. Delete Subject");
+		System.out.println("6. Delete User"); // Add option to delete user
+		System.out.println("7. Back to Main Menu");
+		System.out.print("Enter your choice: ");
 	}
-
 
 }
