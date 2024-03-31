@@ -69,13 +69,13 @@ class EnrollmentSystem {
 
             System.out.print("Enter new student number: ");
             int newStudentNo = scanner.nextInt();
-            scanner.nextLine(); // Consume the newline character
+            scanner.nextLine(); 
             System.out.print("Enter new course ID: ");
             int newCourseId = scanner.nextInt();
-            scanner.nextLine(); // Consume the newline character
+            scanner.nextLine(); 
             System.out.print("Enter new subject ID: ");
             int newSubjectId = scanner.nextInt();
-            scanner.nextLine(); // Consume the newline character
+            scanner.nextLine(); 
 
             stmt.setInt(1, newStudentNo);
             stmt.setInt(2, newCourseId);
@@ -124,7 +124,7 @@ class EnrollmentSystem {
     }
     
     public void enrollInSubject(int studentNo, String subjectName) {
-        // Retrieve the courseId and subjectId using the subjectName
+        
         int courseId = retrieveCourseId(subjectName);
         int subjectId = retrieveSubjectId(subjectName);
 
@@ -133,13 +133,13 @@ class EnrollmentSystem {
             return;
         }
 
-        // Create the enrollment
+        
         createEnrollment(studentNo, courseId, subjectId);
         System.out.println("Enrollment in subject " + subjectName + " successful!");
     }
     
     public int retrieveCourseId(String subjectName) {
-        int courseId = -1; // Default value if not found
+        int courseId = -1; 
         try {
             String query = "SELECT CourseId FROM course WHERE CourseName = ?";
             PreparedStatement stmt = conn.prepareStatement(query);
@@ -157,7 +157,7 @@ class EnrollmentSystem {
     }
 
     public int retrieveSubjectId(String subjectName) {
-        int subjectId = -1; // Default value if not found
+        int subjectId = -1; 
         try {
             String query = "SELECT SubjectId FROM subject WHERE SubjectName = ?";
             PreparedStatement stmt = conn.prepareStatement(query);
