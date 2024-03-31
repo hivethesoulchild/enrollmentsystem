@@ -395,28 +395,34 @@ public class Main {
 			sus.createSubject(subjectName, professorId);
 			break;
 		case 6:
-			
-			System.out.print("Enter username: ");
-			String username = scanner.nextLine();
-			System.out.print("Enter password: ");
-			String password = scanner.nextLine();
+		    System.out.print("Enter username: ");
+		    String username = scanner.nextLine();
+		    System.out.print("Enter password: ");
+		    String password = scanner.nextLine();
 
-			
-			if (!isValidPassword(password)) {
-				System.out.println(
-						"Password must have 8-24 characters with uppercase, lowercase, and number characters.");
-				break;
-			}
+		    if (!isValidPassword(password)) {
+		        System.out.println("Password must have 8-24 characters with uppercase, lowercase, and number characters.");
+		        break;
+		    }
 
-			
-			System.out.print("Enter role (admin, professor, student): ");
-			String roleString = scanner.nextLine();
-			Users.Role role = Users.Role.valueOf(roleString.toLowerCase());
-			System.out.print("Enter status (active, inactive): ");
+		    System.out.print("Enter role (admin, professor, student): ");
+		    String roleString = scanner.nextLine().toLowerCase();
 
-			
-			us.addUser(username, password, role);
-			break;
+		    Users.Role role = null;
+		    for (Users.Role enumRole : Users.Role.values()) {
+		        if (enumRole.toString().toLowerCase().equals(roleString)) {
+		            role = enumRole;
+		            break;
+		        }
+		    }
+
+		    if (role != null) {
+		        us.addUser(username, password, role);
+		    } else {
+		        System.out.println("Invalid role. Please enter 'admin', 'professor', or 'student'.");
+		    }
+		    break;
+
 		default:
 			System.out.println("Invalid choice. Please try again.");
 		}
